@@ -1,16 +1,14 @@
 {
-    "name": "COMPANYNAME.PACKAGENAME.Editor",
-    "references": [
-        "COMPANYNAME.PACKAGENAME"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "name": "VertexColor.Validator",
+    "rootNamespace": "Validator",
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": []
+    "versionDefines": [],
+    "noEngineReferences": false
 }

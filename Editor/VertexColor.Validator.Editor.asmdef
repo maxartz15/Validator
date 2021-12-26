@@ -1,9 +1,12 @@
 {
-    "name": "COMPANYNAME.PACKAGENAME.Tests",
+    "name": "Validator.Editor",
+    "rootNamespace": "Validator.Editor",
     "references": [
-        "COMPANYNAME.PACKAGENAME"
+        "GUID:334c4fbff44e0f9439f29f9d8e0ce6e9"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
@@ -11,7 +14,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "optionalUnityReferences": [
-        "TestAssemblies"
-    ]
+    "noEngineReferences": false
 }

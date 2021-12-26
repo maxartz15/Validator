@@ -1,6 +1,32 @@
-# [COMPANYNAME]() - PACKAGENAME
+# Validator
 
-Description.
+Unity project validator framework.
+
+## Getting Started
+Open Validator Window:
+> Window -> General -> Validator
+
+Add validatable:
+```C#
+using Validator;
+
+public class MyBehaviour : MonoBehaviour, IValidatable
+{
+    [SerializeField] private float startHealth = 10; // If someone was to put it to low <= 0, it would be invalid.
+
+#if UNITY_EDITOR
+    public void Validate(Report report)
+	{
+        // Check if health is valid.
+		if(startHealth <= 0)
+		{
+            // If not, log it.
+			report.Log(this, WarningType.Warning, ReportCategories.Design, $"{nameof(startHealth)} is to low", $"Make value > 0");
+		}
+	}
+#endif
+}
+```
 
 ## Install
 
