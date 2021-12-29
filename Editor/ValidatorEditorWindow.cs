@@ -156,7 +156,7 @@ namespace Validator.Editor
                     validatorOptionsMenu.AddSeparator("");
 					foreach (ValidatorInfo validatorInfo in validators)
 					{
-						validatorOptionsMenu.AddItem(new GUIContent($"{validatorInfo.validator.GetType().Name}"), validatorInfo.isEnabled, OnValidatorInfoVisibilityChangedEvent, validatorInfo);
+						validatorOptionsMenu.AddItem(new GUIContent($"{validatorInfo.validator.MenuName}"), validatorInfo.isEnabled, OnValidatorInfoVisibilityChangedEvent, validatorInfo);
 					}
 					validatorOptionsMenu.ShowAsContext();
 				}

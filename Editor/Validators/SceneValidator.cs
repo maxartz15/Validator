@@ -7,9 +7,11 @@ namespace Validator.Editor
 {
 	public class SceneValidator : IValidator
 	{
-		public Report Validate()
+        public string MenuName => nameof(SceneValidator);
+
+        public Report Validate()
 		{
-            Report report = new Report("SceneValidator");
+            Report report = new Report(nameof(SceneValidator));
 
             List<IValidatable> objects = FindAllObjectsOfType<IValidatable>();
 			for (int i = 0; i < objects.Count; i++)
@@ -17,7 +19,7 @@ namespace Validator.Editor
                 EditorUtility.DisplayProgressBar("SceneValidator", "Validate...", (float)i / objects.Count);
 
                 objects[i].Validate(report);
-            }
+			}
             EditorUtility.ClearProgressBar();
 
             return report;
@@ -37,7 +39,7 @@ namespace Validator.Editor
             return gameObjects;
         }
 
-        private static List<T> FindAllObjectsOfType<T>()
+        public static List<T> FindAllObjectsOfType<T>()
         {
             List<T> objects = new List<T>();
 

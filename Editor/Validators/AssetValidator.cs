@@ -6,9 +6,11 @@ namespace Validator.Editor
 {
 	public class AssetValidator : IValidator
 	{
+		public string MenuName => nameof(AssetValidator);
+
 		public Report Validate()
 		{
-			Report report = new Report("AssetValidator");
+			Report report = new Report(nameof(AssetValidator));
 
 			List<Object> objects = FindAssetsByType<Object>();
 			for (int i = 0; i < objects.Count; i++)

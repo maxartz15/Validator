@@ -1,5 +1,7 @@
 # Change Log:
 ## 0.1.1
+- First prototype of Attribute validator.
+## 0.1.1
 - Search input.
 - GUI toolbar.
 - WarningType filter.
