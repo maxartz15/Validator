@@ -23,7 +23,6 @@ namespace Validator.Editor
 
         private class ReportStats
 		{
-            public int TotalCount => infoCount + warningCount + errorCount;
             public int infoCount = 0;
             public int warningCount = 0;
             public int errorCount = 0;
@@ -34,6 +33,7 @@ namespace Validator.Editor
 			public bool showInfo = true;
 			public bool showWarning = true;
 			public bool showError = true;
+            public string searchInput = "";
 
 			public readonly Color lightColor = new Color(0.25f, 0.25f, 0.25f, 1);
 			public readonly Color darkColor = new Color(0.22f, 0.22f, 0.22f, 1);
@@ -169,9 +169,10 @@ namespace Validator.Editor
 
                 GUILayout.FlexibleSpace();
 
+                settings.searchInput = GUILayout.TextField(settings.searchInput, EditorStyles.toolbarSearchField, GUILayout.MaxWidth(300));
+
                 if(reportStats != null)
 				{
-                    GUILayout.Label(new GUIContent($"{reportStats.TotalCount}", EditorGUIUtility.IconContent("d_console.erroricon.inactive.sml").image), EditorStyles.toolbarButton);
                     settings.showInfo = GUILayout.Toggle(settings.showInfo, new GUIContent($"{reportStats.infoCount}", EditorGUIUtility.IconContent(GetWarningIconName(WarningType.Info)).image), EditorStyles.toolbarButton);
                     settings.showWarning =  GUILayout.Toggle(settings.showWarning, new GUIContent($"{reportStats.warningCount}", EditorGUIUtility.IconContent(GetWarningIconName(WarningType.Warning)).image), EditorStyles.toolbarButton);
                     settings.showError = GUILayout.Toggle(settings.showError, new GUIContent($"{reportStats.errorCount}", EditorGUIUtility.IconContent(GetWarningIconName(WarningType.Error)).image), EditorStyles.toolbarButton);
@@ -228,6 +229,7 @@ namespace Validator.Editor
                 {
                     for (int j = 0; j < reports[i].Reports.Count; j++)
                     {
+                        // Type filter.
 						switch (reports[i].Reports[j].WarningType)
 						{
 							case WarningType.Info:
@@ -244,6 +246,15 @@ namespace Validator.Editor
                                 break;
 							default:
 								break;
+						}
+
+                        // Search filter.
+                        if (!string.IsNullOrWhiteSpace(settings.searchInput))
+						{
+							if (!reports[i].Reports[j].Category.Contains(settings.searchInput) && !reports[i].Reports[j].Message.Contains(settings.searchInput) && !reports[i].Reports[j].Solution.Contains(settings.searchInput))
+							{
+                                continue;
+							}
 						}
 
 						// Only draw what is visible within the view.
