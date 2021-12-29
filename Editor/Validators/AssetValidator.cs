@@ -8,7 +8,7 @@ namespace Validator.Editor
 	{
 		public Report Validate()
 		{
-			Report reporter = new Report("AssetValidator");
+			Report report = new Report("AssetValidator");
 
 			List<Object> objects = FindAssetsByType<Object>();
 			for (int i = 0; i < objects.Count; i++)
@@ -16,12 +16,12 @@ namespace Validator.Editor
 				EditorUtility.DisplayProgressBar("AssetValidator", "Validate...", (float)i / objects.Count);
 				if (objects[i] is IValidatable validatable)
 				{
-					validatable.Validate(reporter);
+					validatable.Validate(report);
 				}
 			}
 			EditorUtility.ClearProgressBar();
 
-			return reporter;
+			return report;
 		}
 
 		public static List<T> FindAssetsByType<T>() where T : Object
