@@ -12,7 +12,7 @@ namespace Validator
 
 	public class Report
 	{
-		public struct ReportMessage
+		public class ReportMessage
 		{
 			public Object Target => target;
 			public WarningType WarningType => warningType;
@@ -37,8 +37,8 @@ namespace Validator
 		}
 
 		public string Name => name;
-
 		public IList<ReportMessage> Reports => reports.AsReadOnly();
+
 		private readonly string name;
 		private readonly List<ReportMessage> reports = new List<ReportMessage>();
 

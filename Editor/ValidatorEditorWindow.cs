@@ -10,14 +10,44 @@ namespace Validator.Editor
 {
     public class ValidatorEditorWindow : EditorWindow
     {
-        private readonly List<Report> reports = new List<Report>();
-        private readonly List<IValidator> validators = new List<IValidator>();
+        private class ValidatorInfo
+		{
+            public IValidator validator = null;
+            public bool isEnabled = true;
 
-        private MultiColumnHeaderState multiColumnHeaderState;
+            public ValidatorInfo(IValidator validator)
+			{
+                this.validator = validator;
+			}
+        }
+
+        private class ReportStats
+		{
+            public int TotalCount => infoCount + warningCount + errorCount;
+            public int infoCount = 0;
+            public int warningCount = 0;
+            public int errorCount = 0;
+        }
+
+        private class Settings
+		{
+			public bool showInfo = true;
+			public bool showWarning = true;
+			public bool showError = true;
+
+			public readonly Color lightColor = new Color(0.25f, 0.25f, 0.25f, 1);
+			public readonly Color darkColor = new Color(0.22f, 0.22f, 0.22f, 1);
+		}
+
+        private static readonly List<ValidatorInfo> validators = new List<ValidatorInfo>();
+        private static readonly List<Report> reports = new List<Report>();
+
+		private static readonly Settings settings = new Settings();
+		private static ReportStats reportStats = new ReportStats();
+
+		private MultiColumnHeaderState multiColumnHeaderState;
         private MultiColumnHeader multiColumnHeader;
         private MultiColumnHeaderState.Column[] columns;
-        private readonly Color lightColor = Color.white * 0.3f;
-        private readonly Color darkColor = Color.white * 0.1f;
         private Vector2 scrollPosition;
         private float multiColumnHeaderWidth;
         private float rows;
@@ -26,7 +56,7 @@ namespace Validator.Editor
         private static void Init()
         {
             ValidatorEditorWindow window = (ValidatorEditorWindow)GetWindow(typeof(ValidatorEditorWindow));
-            window.titleContent = new GUIContent("Validator");
+            window.titleContent = new GUIContent("Validator", EditorGUIUtility.IconContent("d_UnityEditor.ConsoleWindow").image);
             window.Show();
             window.LoadValidators();
         }
@@ -35,37 +65,7 @@ namespace Validator.Editor
         {
             using (new EditorGUILayout.VerticalScope(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
             {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button(EditorGUIUtility.IconContent("Refresh", "Refresh")))
-					{
-                        LoadValidators();
-                    }
-
-                    if (GUILayout.Button(EditorGUIUtility.IconContent("PlayButton", "Run all")))
-                    {
-                        reports.Clear();
-
-                        foreach (IValidator validator in validators)
-                        {
-                            reports.Add(validator.Validate());
-                        }
-                    }
-
-                    if (GUILayout.Button(EditorGUIUtility.IconContent("d_preAudioLoopOff", "Select validator")))
-					{
-                        GenericMenu validatorOptionsMenu = new GenericMenu();
-                        foreach (IValidator validator in validators)
-                        {
-                            validatorOptionsMenu.AddItem(new GUIContent($"{validator.GetType().Name}"), false, OnGenericValidate, validator);
-                        }
-                        validatorOptionsMenu.ShowAsContext();
-					}
-
-                    GUILayout.FlexibleSpace();
-                    GUILayout.Label($"{reports.Count}/{validators.Count}");
-                }
-
+                DrawMenu();
                 GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
                 DrawMultiColumnScope();
             }
@@ -134,18 +134,54 @@ namespace Validator.Editor
                 },
             };
 
-            multiColumnHeaderState = new MultiColumnHeaderState(columns: this.columns);
-            multiColumnHeader = new MultiColumnHeader(state: this.multiColumnHeaderState);
-
-            // When we chagne visibility of the column we resize columns to fit in the window.
-            //multiColumnHeader.visibleColumnsChanged += (multiColumnHeader) => multiColumnHeader.ResizeToFit();
-            // Initial resizing of the content.
+            multiColumnHeaderState = new MultiColumnHeaderState(columns);
+            multiColumnHeader = new MultiColumnHeader(multiColumnHeaderState);
             multiColumnHeader.ResizeToFit();
+        }
+
+        private void DrawMenu()
+		{
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+            {
+                if (GUILayout.Button(EditorGUIUtility.IconContent("Refresh", "Refresh"), EditorStyles.toolbarButton))
+                {
+                    LoadValidators();
+                }
+
+				if (GUILayout.Button(EditorGUIUtility.IconContent("d_Settings", "Select validator"), EditorStyles.toolbarButton))
+				{
+					GenericMenu validatorOptionsMenu = new GenericMenu();
+					validatorOptionsMenu.AddItem(new GUIContent($"All"), false, OnValidatorInfoVisibilityAllEvent);
+					validatorOptionsMenu.AddItem(new GUIContent($"None"), false, OnValidatorInfoVisibilityNoneEvent);
+                    validatorOptionsMenu.AddSeparator("");
+					foreach (ValidatorInfo validatorInfo in validators)
+					{
+						validatorOptionsMenu.AddItem(new GUIContent($"{validatorInfo.validator.GetType().Name}"), validatorInfo.isEnabled, OnValidatorInfoVisibilityChangedEvent, validatorInfo);
+					}
+					validatorOptionsMenu.ShowAsContext();
+				}
+
+				if (GUILayout.Button(EditorGUIUtility.IconContent("PlayButton", "Run all"), EditorStyles.toolbarButton))
+                {
+                    RunValidators();
+                    UpdateStats();
+                }
+
+                GUILayout.FlexibleSpace();
+
+                if(reportStats != null)
+				{
+                    GUILayout.Label(new GUIContent($"{reportStats.TotalCount}", EditorGUIUtility.IconContent("d_console.erroricon.inactive.sml").image), EditorStyles.toolbarButton);
+                    settings.showInfo = GUILayout.Toggle(settings.showInfo, new GUIContent($"{reportStats.infoCount}", EditorGUIUtility.IconContent(GetWarningIconName(WarningType.Info)).image), EditorStyles.toolbarButton);
+                    settings.showWarning =  GUILayout.Toggle(settings.showWarning, new GUIContent($"{reportStats.warningCount}", EditorGUIUtility.IconContent(GetWarningIconName(WarningType.Warning)).image), EditorStyles.toolbarButton);
+                    settings.showError = GUILayout.Toggle(settings.showError, new GUIContent($"{reportStats.errorCount}", EditorGUIUtility.IconContent(GetWarningIconName(WarningType.Error)).image), EditorStyles.toolbarButton);
+				}
+            }
         }
 
         private void DrawMultiColumnScope()
         {
-            GUILayout.FlexibleSpace();
+            //GUILayout.FlexibleSpace(); // If nothing has been drawn yet, uncomment this because GUILayoutUtility.GetLastRect() needs it.
             Rect windowRect = GUILayoutUtility.GetLastRect();
             windowRect.width = position.width;
             windowRect.height = position.height;
@@ -157,7 +193,7 @@ namespace Validator.Editor
 
             float columnHeight = EditorGUIUtility.singleLineHeight * 2;
 
-            Rect headerRect = new Rect(source: windowRect)
+            Rect headerRect = new Rect(windowRect)
             {
                 height = EditorGUIUtility.singleLineHeight,
             };
@@ -166,20 +202,20 @@ namespace Validator.Editor
             scrollViewPositionRect.y += headerRect.height - EditorGUIUtility.standardVerticalSpacing;
             scrollViewPositionRect.height -= headerRect.height - EditorGUIUtility.standardVerticalSpacing;
 
-            Rect scrollViewRect = new Rect(source: windowRect)
+            Rect scrollViewRect = new Rect(windowRect)
             {
                 width = multiColumnHeaderState.widthOfAllVisibleColumns,
                 height = rows * columnHeight
             };
 
-            Rect rowRect = new Rect(source: windowRect)
+            Rect rowRect = new Rect(windowRect)
             {
                 width = multiColumnHeaderWidth,
                 height = columnHeight,
             };
 
             // Draw column header.
-            multiColumnHeader.OnGUI(rect: headerRect, xScroll: scrollPosition.x);
+            multiColumnHeader.OnGUI(headerRect, scrollPosition.x);
 
             // Draw scroll view.
             using (GUI.ScrollViewScope scope = new GUI.ScrollViewScope(scrollViewPositionRect, scrollPosition, scrollViewRect, false, false))
@@ -192,51 +228,69 @@ namespace Validator.Editor
                 {
                     for (int j = 0; j < reports[i].Reports.Count; j++)
                     {
-                        // Only draw what is visable within the view.
+						switch (reports[i].Reports[j].WarningType)
+						{
+							case WarningType.Info:
+                                if (!settings.showInfo)
+                                    continue;
+								break;
+							case WarningType.Warning:
+                                if (!settings.showWarning)
+                                    continue;
+                                break;
+							case WarningType.Error:
+                                if (!settings.showError)
+                                    continue;
+                                break;
+							default:
+								break;
+						}
+
+						// Only draw what is visible within the view.
 						if (rowRect.yMax > windowRect.y + scrollPosition.y && rowRect.yMin < windowRect.height + scrollPosition.y)
 						{
-                            if (j % 2 == 0)
+                            if (rows % 2 == 0)
                             {
-                                EditorGUI.DrawRect(rect: rowRect, color: darkColor);
+                                EditorGUI.DrawRect(rowRect, settings.darkColor);
                             }
                             else
                             {
-                                EditorGUI.DrawRect(rect: rowRect, color: lightColor);
+                                EditorGUI.DrawRect(rowRect, settings.lightColor);
                             }
 
                             // Warning Field.
                             int columnIndex = 0;
-                            if (multiColumnHeader.IsColumnVisible(columnIndex: columnIndex))
+                            if (multiColumnHeader.IsColumnVisible(columnIndex))
                             {
-                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex: columnIndex);
-                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex: visibleColumnIndex);
+                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex);
+                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex);
                                 columnRect.y = rowRect.y;
                                 columnRect.height = rowRect.height;
 
-                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex: visibleColumnIndex, columnRect);
+                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex, columnRect);
                                 labelFieldRect.x += 9;
                                 labelFieldRect.width -= 9;
 
                                 EditorGUI.LabelField(
-                                    position: labelFieldRect,
-                                    label: EditorGUIUtility.IconContent(GetWarningIconName(reports[i].Reports[j].WarningType), $"{reports[i].Reports[j].WarningType}")
+                                    labelFieldRect,
+                                    EditorGUIUtility.IconContent(GetWarningIconName(reports[i].Reports[j].WarningType), $"{reports[i].Reports[j].WarningType}")
                                 );
                             }
 
                             // Target Field.
                             columnIndex = 1;
-                            if (multiColumnHeader.IsColumnVisible(columnIndex: columnIndex))
+                            if (multiColumnHeader.IsColumnVisible(columnIndex))
                             {
-                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex: columnIndex);
-                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex: visibleColumnIndex);
+                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex);
+                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex);
                                 columnRect.y = rowRect.y;
                                 columnRect.height = rowRect.height;
 
                                 if(reports[i].Reports[j].Target != null)
 								{
                                     if (GUI.Button(
-                                        position: multiColumnHeader.GetCellRect(visibleColumnIndex: visibleColumnIndex, columnRect),
-                                        content: EditorGUIUtility.IconContent("Animation.FilterBySelection", "Ping Object")
+                                        multiColumnHeader.GetCellRect(visibleColumnIndex, columnRect),
+                                        EditorGUIUtility.IconContent("Animation.FilterBySelection", "Ping Object")
                                     ))
                                     {
                                         Selection.objects = new Object[] { reports[i].Reports[j].Target };
@@ -257,58 +311,58 @@ namespace Validator.Editor
 
                             // Category Field.
                             columnIndex = 2;
-                            if (multiColumnHeader.IsColumnVisible(columnIndex: columnIndex))
+                            if (multiColumnHeader.IsColumnVisible(columnIndex))
                             {
-                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex: columnIndex);
-                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex: visibleColumnIndex);
+                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex);
+                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex);
                                 columnRect.y = rowRect.y;
                                 columnRect.height = rowRect.height;
 
-                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex: visibleColumnIndex, columnRect);
+                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex, columnRect);
                                 labelFieldRect.x += 7;
                                 labelFieldRect.width -= 7;
 
                                 EditorGUI.LabelField(
-                                    position: labelFieldRect,
-                                    label: new GUIContent($"{reports[i].Reports[j].Category}")
+                                    labelFieldRect,
+                                    new GUIContent($"{reports[i].Reports[j].Category}")
                                 );
                             }
 
                             // Message Field.
                             columnIndex = 3;
-                            if (multiColumnHeader.IsColumnVisible(columnIndex: columnIndex))
+                            if (multiColumnHeader.IsColumnVisible(columnIndex))
                             {
-                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex: columnIndex);
-                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex: visibleColumnIndex);
+                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex);
+                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex);
                                 columnRect.y = rowRect.y;
                                 columnRect.height = rowRect.height;
 
-                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex: visibleColumnIndex, columnRect);
+                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex, columnRect);
                                 labelFieldRect.x += 7;
                                 labelFieldRect.width -= 7;
 
                                 EditorGUI.LabelField(
-                                    position: labelFieldRect,
-                                    label: new GUIContent($"{reports[i].Reports[j].Message}")
+                                    labelFieldRect,
+                                    new GUIContent($"{reports[i].Reports[j].Message}")
                                 );
                             }
 
                             // Solution Field.
                             columnIndex = 4;
-                            if (multiColumnHeader.IsColumnVisible(columnIndex: columnIndex))
+                            if (multiColumnHeader.IsColumnVisible(columnIndex))
                             {
-                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex: columnIndex);
-                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex: visibleColumnIndex);
+                                int visibleColumnIndex = multiColumnHeader.GetVisibleColumnIndex(columnIndex);
+                                Rect columnRect = multiColumnHeader.GetColumnRect(visibleColumnIndex);
                                 columnRect.y = rowRect.y;
                                 columnRect.height = rowRect.height;
 
-                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex: visibleColumnIndex, columnRect);
+                                Rect labelFieldRect = multiColumnHeader.GetCellRect(visibleColumnIndex, columnRect);
                                 labelFieldRect.x += 7;
                                 labelFieldRect.width -= 7;
 
                                 EditorGUI.LabelField(
-                                    position: labelFieldRect,
-                                    label: new GUIContent($"{reports[i].Reports[j].Solution}")
+                                    labelFieldRect,
+                                    new GUIContent($"{reports[i].Reports[j].Solution}")
                                 );
                             }
                         }
@@ -325,7 +379,7 @@ namespace Validator.Editor
         {
             for (int i = validators.Count - 1; i >= 0; i--)
             {
-                if (validators[i] == null)
+                if (validators[i].validator == null)
                 {
                     validators.RemoveAt(i);
                 }
@@ -334,9 +388,9 @@ namespace Validator.Editor
             foreach (Type type in GetValidatorTypes())
             {
                 bool hasValidator = false;
-                foreach (IValidator validator in validators)
+                foreach (ValidatorInfo validatorInfo in validators)
                 {
-                    if (validator.GetType() == type)
+                    if (validatorInfo.validator.GetType() == type)
                     {
                         hasValidator = true;
                     }
@@ -347,22 +401,76 @@ namespace Validator.Editor
                     IValidator validator = (IValidator)Activator.CreateInstance(type);
                     if (validator != null)
                     {
-                        validators.Add(validator);
+                        validators.Add(new ValidatorInfo(validator));
                     }
                 }
             }
         }
 
-        private void OnGenericValidate(object validator)
-        {
-            if (validator is IValidator val)
-            {
-                reports.Clear();
-                reports.Add(val.Validate());
-            }
-        }
+        private void RunValidators()
+		{
+			reports.Clear();
 
-        private static Type[] GetValidatorTypes()
+            foreach (ValidatorInfo validatorInfo in validators)
+			{
+				if (validatorInfo.isEnabled)
+				{
+                    reports.Add(validatorInfo.validator.Validate());
+                }
+			}
+		}
+
+        private void UpdateStats()
+		{
+            reportStats = new ReportStats();
+
+			foreach (Report report in reports)
+			{
+				for (int i = 0; i < report.Reports.Count; i++)
+				{
+					switch (report.Reports[i].WarningType)
+					{
+						case WarningType.Info:
+                            reportStats.infoCount++;
+							break;
+						case WarningType.Warning:
+							reportStats.warningCount++;
+							break;
+						case WarningType.Error:
+							reportStats.errorCount++;
+							break;
+						default:
+                            break;
+					}
+				}
+			}
+		}
+
+		private void OnValidatorInfoVisibilityChangedEvent(object info)
+        {
+            if(info is ValidatorInfo validatorInfo)
+			{
+                validatorInfo.isEnabled = !validatorInfo.isEnabled;
+            }
+		}
+
+        private void OnValidatorInfoVisibilityAllEvent()
+		{
+			foreach (ValidatorInfo validatorInfo in validators)
+			{
+                validatorInfo.isEnabled = true;
+            }
+		}
+
+		private void OnValidatorInfoVisibilityNoneEvent()
+		{
+			foreach (ValidatorInfo validatorInfo in validators)
+			{
+				validatorInfo.isEnabled = false;
+			}
+		}
+
+		private static Type[] GetValidatorTypes()
 		{
             return TypeCache.GetTypesDerivedFrom<IValidator>().ToArray();
         }
@@ -371,11 +479,11 @@ namespace Validator.Editor
 		{
 			return warningType switch
 			{
-				WarningType.Info => "d_console.warnicon.inactive.sml",
+				WarningType.Info => "d_console.infoicon.sml",
 				WarningType.Warning => "d_console.warnicon.sml",
 				WarningType.Error => "d_console.erroricon.sml",
 				_ => "d_console.erroricon.inactive.sml",
 			};
 		}
-    }
+	}
 }
