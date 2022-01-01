@@ -1,12 +1,11 @@
 # Validator
 
+![ValidatorWindow](Documentation~/Images/ValidatorWindow_01.png)
+
 Unity project validator framework.
 
 ## Getting Started
-Open Validator Window:
-> Window -> General -> Validator
-
-Add validatable:
+Add a custom validate check using the `IValidatable` interface:
 ```C#
 using Validator;
 
@@ -28,12 +27,20 @@ public class MyBehaviour : MonoBehaviour, IValidatable
 }
 ```
 
+Add a validate check using `[Required]` attribute:
+```C#
+[SerializeField, Required] private GameObject playerPrefab = null; // If someone forgets to assign it, it would be invalid.
+```
+
+Open Validator Window:
+> Window -> General -> Validator
+
+Run the validator:
+> Click the 'run/play' button and wait for the report to be generated.
+
 ## Install
 
 [Installing from a Git URL](https://docs.unity3d.com/Manual/upm-ui-giturl.html)
-
-[Unitypackage](https://github.com/COMPANYNAME/PACKAGENAME/releases)
-
 
 ## LICENSE
 
