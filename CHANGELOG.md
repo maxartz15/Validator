@@ -1,7 +1,9 @@
 # Change Log:
+## 0.1.4
+- Fix attribute validator..?
 ## 0.1.3
 - Fix attribute validator..?
-- ## 0.1.2
+## 0.1.2
 - ...
 ## 0.1.1
 - First prototype of Attribute validator.
