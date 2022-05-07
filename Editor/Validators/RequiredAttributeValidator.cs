@@ -8,7 +8,7 @@ namespace Validator.Editor
 {
 	public class RequiredAttributeAssetValidator : IValidator
 	{
-		public string MenuName => "Attributes/RequiredAttributeAssetValidator";
+		public string MenuName => nameof(RequiredAttributeAssetValidator);
 
 		private const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
@@ -44,7 +44,7 @@ namespace Validator.Editor
 
 	public class RequiredAttributeSceneValidator : IValidator
 	{
-		public string MenuName => "Attributes/RequiredAttributeSceneValidator";
+		public string MenuName => nameof(RequiredAttributeSceneValidator);
 
 		private const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
