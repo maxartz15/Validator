@@ -4,13 +4,13 @@ using UnityEngine;
 
 namespace Validator.Editor
 {
-	public class AssetValidator : IValidator
+	public class ValidatableAssetValidator : IValidator
 	{
-		public string MenuName => nameof(AssetValidator);
+		public string MenuName => nameof(ValidatableAssetValidator);
 
 		public Report Validate()
 		{
-			Report report = new Report(nameof(AssetValidator));
+			Report report = new Report(nameof(ValidatableAssetValidator));
 
 			List<Object> objects = FindAssetsByType<Object>();
 			for (int i = 0; i < objects.Count; i++)

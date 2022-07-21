@@ -16,7 +16,7 @@ namespace Validator.Editor
 		{
 			Report report = new Report(nameof(RequiredAttributeAssetValidator));
 
-			List<Object> objects = AssetValidator.FindAssetsByType<Object>();
+			List<Object> objects = ValidatableAssetValidator.FindAssetsByType<Object>();
 
 			for (int i = 0; i < objects.Count; i++)
 			{
@@ -52,7 +52,7 @@ namespace Validator.Editor
 		{
 			Report report = new Report(nameof(RequiredAttributeSceneValidator));
 
-			List<MonoBehaviour> objects = SceneValidator.FindAllObjectsOfType<MonoBehaviour>();
+			List<MonoBehaviour> objects = ValidatableSceneValidator.FindAllObjectsOfType<MonoBehaviour>();
 
 			for (int i = 0; i < objects.Count; i++)
 			{
